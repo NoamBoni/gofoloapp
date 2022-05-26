@@ -8,5 +8,6 @@ import (
 func InitRouter() *gin.Engine {
 	router := gin.Default()
 	router.POST("/register_therapist", controllers.RegisterTherapist)
+	router.POST("/register_patient", controllers.RegisterPatient)
 	return router
 }
