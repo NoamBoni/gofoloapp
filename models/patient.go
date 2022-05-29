@@ -16,7 +16,7 @@ type Patient struct {
 	Total_meetings      uint       `json:"total_meetings"`
 	Meeting_number      uint       `json:"meeting_number"`
 	Next_meeting        time.Time  `json:"next_meeting"`
-	Meetings            []*Meeting `json:"meetings" sql:"-"`
+	Meetings            []*Meeting `json:"meetings" sql:"-" pg:"rel:has-many, fk:meeting_id"`
 	Name                string     `json:"name" sql:"-"`
 	Password            string     `json:"password" sql:"-"`
 }

@@ -7,28 +7,31 @@ import (
 	"github.com/NoamBoni/gofoloapp/helpers"
 	"github.com/NoamBoni/gofoloapp/models"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 )
 
 var Db = helpers.ConnectDB()
 
 func RegisterTherapist(ctx *gin.Context) {
 	var newTherapist models.User
-	if err := ctx.Bind(&newTherapist); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
+	if err := ctx.ShouldBindBodyWith(&newTherapist, binding.JSON); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"status": "failed",
 			"error":  err.Error(),
 		})
 		return
 	}
 	newTherapist.Role = "Therapist"
-	_, err := Db.Model(&newTherapist).Insert()
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
+	updateUser(ctx, &newTherapist)
+	if _, err := Db.Model(&newTherapist).Insert(); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"status": "failed",
 			"error":  err.Error(),
 		})
 		return
 	}
+	
+	newTherapist.Password = ""
 	ctx.JSON(http.StatusCreated, gin.H{
 		"status": "created",
 		"data":   newTherapist,
@@ -38,8 +41,11 @@ func RegisterTherapist(ctx *gin.Context) {
 
 func RegisterPatient(ctx *gin.Context) {
 	var newPatient models.Patient
-	if err := ctx.Bind(&newPatient); err != nil {
-		ctx.AbortWithError(http.StatusBadRequest, err)
+	if err := ctx.ShouldBindBodyWith(&newPatient, binding.JSON); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"status": "failed",
+			"error":  err.Error(),
+		})
 		return
 	}
 
@@ -48,19 +54,26 @@ func RegisterPatient(ctx *gin.Context) {
 		Password: newPatient.Password,
 		Role:     "Patient",
 	}
+	updateUser(ctx, &newUser)
 
-	_, err := Db.Model(&newUser).Insert()
-	if err != nil {
-		ctx.AbortWithError(http.StatusBadRequest, err)
+	if _, err := Db.Model(&newUser).Insert(); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"status": "failed",
+			"error":  err.Error(),
+		})
 		return
 	}
+
 	newPatient.User_id = newUser.Id
 
 	if _, err := Db.Model(&newPatient).Insert(); err != nil {
 		if _, e := Db.Model(&newUser).Where("id = ?", newUser.Id).Delete(); e != nil {
 			fmt.Println(e.Error())
 		}
-		ctx.AbortWithError(http.StatusBadRequest, err)
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"status": "failed",
+			"error":  err.Error(),
+		})
 		return
 	}
 	newPatient.Password = ""
@@ -68,4 +81,18 @@ func RegisterPatient(ctx *gin.Context) {
 		"status": "created",
 		"data":   newPatient,
 	})
+}
+
+func updateUser(ctx *gin.Context, user *models.User) {
+	name, got1 := ctx.Get("valid-name")
+	password, got2 := ctx.Get("crypted-password")
+	if !got1 || !got2 {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"status": "failed",
+			"error":  "something's wrong, try again later",
+		})
+		return
+	}
+	user.Name = fmt.Sprintf("%v", name)
+	user.Password = fmt.Sprintf("%v", password)
 }
