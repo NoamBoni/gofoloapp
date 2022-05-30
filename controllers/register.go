@@ -30,7 +30,7 @@ func RegisterTherapist(ctx *gin.Context) {
 		})
 		return
 	}
-	
+
 	newTherapist.Password = ""
 	ctx.JSON(http.StatusCreated, gin.H{
 		"status": "created",
@@ -84,15 +84,13 @@ func RegisterPatient(ctx *gin.Context) {
 }
 
 func updateUser(ctx *gin.Context, user *models.User) {
-	name, got1 := ctx.Get("valid-name")
-	password, got2 := ctx.Get("crypted-password")
-	if !got1 || !got2 {
+	password, got := ctx.Get("crypted-password")
+	if !got {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"status": "failed",
 			"error":  "something's wrong, try again later",
 		})
 		return
 	}
-	user.Name = fmt.Sprintf("%v", name)
 	user.Password = fmt.Sprintf("%v", password)
 }

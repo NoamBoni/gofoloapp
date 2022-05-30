@@ -13,5 +13,6 @@ func InitRouter() *gin.Engine {
 		auth.POST("/register_therapist", controllers.RegisterTherapist)
 		auth.POST("/register_patient", controllers.RegisterPatient)
 	}
+	router.POST("/login", controllers.Login)
 	return router
 }

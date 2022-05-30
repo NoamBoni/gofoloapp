@@ -19,6 +19,7 @@ type Patient struct {
 	Meetings            []*Meeting `json:"meetings" sql:"-" pg:"rel:has-many, fk:meeting_id"`
 	Name                string     `json:"name" sql:"-"`
 	Password            string     `json:"password" sql:"-"`
+	Role                string     `json:"role" sql:"-"`
 }
 
 // func (p *Patient) String() string {

@@ -20,10 +20,7 @@ func Encrypt(ctx *gin.Context) {
 		return
 	}
 
-	name := strings.ReplaceAll(newUser.Name, " ", "")
-	password := strings.ReplaceAll(newUser.Password, " ", "")
-
-	if password == "" || name == "" {
+	if strings.Contains(newUser.Password, " ") || strings.Contains(newUser.Name, " ") {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"status": "failed",
 			"error":  "invalid name or password",
@@ -31,7 +28,7 @@ func Encrypt(ctx *gin.Context) {
 		return
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(password),bcrypt.DefaultCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(newUser.Password), bcrypt.DefaultCost)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"status": "failed",
@@ -39,9 +36,7 @@ func Encrypt(ctx *gin.Context) {
 		})
 		return
 	}
-	password = string(hash)
 
-	ctx.Set("valid-name", name)
-	ctx.Set("crypted-password", password)
+	ctx.Set("crypted-password", string(hash))
 	ctx.Next()
 }
