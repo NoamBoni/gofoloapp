@@ -8,9 +8,14 @@ import (
 	"github.com/NoamBoni/gofoloapp/models"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
+	"github.com/go-pg/pg"
 )
 
-var Db = helpers.ConnectDB()
+var Db *pg.DB
+
+func init(){
+	Db = helpers.ConnectDB()
+}
 
 func RegisterTherapist(ctx *gin.Context) {
 	var newTherapist models.User
@@ -67,9 +72,7 @@ func RegisterPatient(ctx *gin.Context) {
 	newPatient.User_id = newUser.Id
 
 	if _, err := Db.Model(&newPatient).Insert(); err != nil {
-		if _, e := Db.Model(&newUser).Where("id = ?", newUser.Id).Delete(); e != nil {
-			fmt.Println(e.Error())
-		}
+		_, _ = Db.Model(&newUser).Where("id = ?", newUser.Id).Delete()
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"status": "failed",
 			"error":  err.Error(),

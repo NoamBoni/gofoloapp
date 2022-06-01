@@ -1,14 +1,30 @@
 package controllers
 
 import (
-	"fmt"
 	"net/http"
+	"os"
+	"time"
 
+	"github.com/NoamBoni/gofoloapp/helpers"
 	"github.com/NoamBoni/gofoloapp/models"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
+	"github.com/golang-jwt/jwt/v4"
 	"golang.org/x/crypto/bcrypt"
 )
+
+type ExtraClaims struct {
+	User_id uint
+	Role    string
+	Name    string
+}
+
+type Claims struct {
+	jwt.RegisteredClaims
+	User_id uint   `json:"user-id"`
+	Role    string `json:"role"`
+	Name    string `json:"name"`
+}
 
 func Login(ctx *gin.Context) {
 	var loginUser models.User
@@ -23,22 +39,30 @@ func Login(ctx *gin.Context) {
 	if err := Db.Model(&usersList).Where("name = ?", loginUser.Name).Select(); err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"status": "failed",
-			"error":  "invalid email or password",
+			"error":  "invalid name or password",
 		})
 		return
 	}
-	fmt.Printf("%+v\n", loginUser)
-	fmt.Printf("%+v\n", usersList)
 	for _, user := range usersList {
 		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(loginUser.Password)); err == nil {
+			claims := ExtraClaims{
+				Name:    user.Name,
+				Role:    user.Role,
+				User_id: user.Id,
+			}
+			token, _ := GenerateJWT(&claims)
+			helpers.LoadEnv()
+			secure := true
+			if os.Getenv("SERVER_STATE") == "development" {
+				secure = false
+			}
+			ctx.SetCookie("token", token, 3600 * 3, "/", "localhost", secure, secure)
 			if user.Role == "Therapist" {
-				loginUser.Password = ""
-				loginUser.Role = user.Role
+				user.Password = ""
 				ctx.JSON(http.StatusOK, gin.H{
 					"status": "successful authentication",
-					"data":   loginUser,
+					"data":   user,
 				})
-				fmt.Println("fmt")
 				return
 			} else {
 				patient := models.Patient{
@@ -46,10 +70,7 @@ func Login(ctx *gin.Context) {
 					Role:    user.Role,
 					Name:    user.Name,
 				}
-				e := Db.Model(&patient).Select()
-				if e != nil {
-					fmt.Println(e)
-				}
+				_ = Db.Model(&patient).Select()
 				patient.Password = ""
 				ctx.JSON(http.StatusOK, gin.H{
 					"status": "successful authentication",
@@ -61,6 +82,23 @@ func Login(ctx *gin.Context) {
 	}
 	ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 		"status": "failed",
-		"error":  "invalid email or password",
+		"error":  "invalid name or password",
 	})
+}
+
+func GenerateJWT(ex *ExtraClaims) (string, error) {
+	helpers.LoadEnv()
+	JWTsecret := []byte(os.Getenv("JWT_SECRET"))
+	TokenDuration := time.Hour * 3
+	c := Claims{
+		jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(TokenDuration)),
+			Issuer:    "gofoloapp",
+		},
+		ex.User_id,
+		ex.Role,
+		ex.Name,
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, c)
+	return token.SignedString(JWTsecret)
 }

@@ -2,6 +2,7 @@ package models
 
 import (
 	"time"
+	"fmt"
 )
 
 type Meeting struct {
@@ -15,6 +16,6 @@ type Meeting struct {
 	Patient        *Patient  `json:"patient" sql:"-"`
 }
 
-// func (m *Meeting) String() string {
-// 	return fmt.Sprintf("<id:%d patient:%s therapist: %v status:%v>", m.Id, m.Patient.Name, m.Patient.Therapist, m.Status)
-// }
+func (m *Meeting) String() string {
+	return fmt.Sprintf("%+v\n", *m)
+}

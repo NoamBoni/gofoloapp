@@ -2,6 +2,7 @@ package models
 
 import (
 	"time"
+	"fmt"
 )
 
 type Patient struct {
@@ -22,6 +23,6 @@ type Patient struct {
 	Role                string     `json:"role" sql:"-"`
 }
 
-// func (p *Patient) String() string {
-// 	return fmt.Sprintf("<id:%d user_id:%d name:%s therapist: %v role:patient>", p.Id, p.User_id, p.Name, p.Therapist)
-// }
+func (p *Patient) String() string {
+	return fmt.Sprintf("%+v\n", *p)
+}
