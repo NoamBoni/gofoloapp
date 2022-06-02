@@ -13,7 +13,7 @@ import (
 
 var Db *pg.DB
 
-func init(){
+func init() {
 	Db = helpers.ConnectDB()
 }
 
