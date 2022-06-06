@@ -1,8 +1,8 @@
 package models
 
 import (
-	"time"
 	"fmt"
+	"time"
 )
 
 type Patient struct {
@@ -25,4 +25,13 @@ type Patient struct {
 
 func (p *Patient) String() string {
 	return fmt.Sprintf("%+v\n", *p)
+}
+
+func (p *Patient) Insert() error {
+	_, err := Db.Model(p).Insert()
+	return err
+}
+
+func (p *Patient) Select() error {
+	return Db.Model(p).Select()
 }

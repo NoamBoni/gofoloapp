@@ -36,7 +36,7 @@ func Login(ctx *gin.Context) {
 		})
 		return
 	}
-	if err := Db.Model(&usersList).Where("name = ?", loginUser.Name).Select(); err != nil {
+	if err := models.GetUsersByName(loginUser.Name, &usersList); err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"status": "failed",
 			"error":  "invalid name or password",
@@ -52,12 +52,9 @@ func Login(ctx *gin.Context) {
 			}
 			token, _ := GenerateJWT(&claims)
 			helpers.LoadEnv()
-			secure := true
-			if os.Getenv("SERVER_STATE") == "development" {
-				secure = false
-			}
-			ctx.SetCookie("token", token, 3600 * 3, "/", "localhost", secure, secure)
-			if user.Role == "Therapist" {
+			secure := os.Getenv("SERVER_STATE") != "development"
+			ctx.SetCookie("token", token, 3600*3, "/", "localhost", secure, secure)
+			if user.Role == models.Role.T {
 				user.Password = ""
 				ctx.JSON(http.StatusOK, gin.H{
 					"status": "successful authentication",
@@ -70,8 +67,7 @@ func Login(ctx *gin.Context) {
 					Role:    user.Role,
 					Name:    user.Name,
 				}
-				_ = Db.Model(&patient).Select()
-				patient.Password = ""
+				_ = patient.Select()
 				ctx.JSON(http.StatusOK, gin.H{
 					"status": "successful authentication",
 					"data":   patient,

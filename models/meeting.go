@@ -18,3 +18,7 @@ type Meeting struct {
 func (m *Meeting) String() string {
 	return fmt.Sprintf("%+v\n", *m)
 }
+
+// func (m *Meeting) Insert(){
+
+// }

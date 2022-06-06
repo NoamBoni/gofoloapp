@@ -26,6 +26,10 @@ func AuthMiddleware(ctx *gin.Context) {
 		getSecret,
 	)
 	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+			"status": "failed",
+			"error":  "please login to continue",
+		})
 		return
 	}
 	claims, ok := token.Claims.(*Claims)

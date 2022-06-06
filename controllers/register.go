@@ -4,18 +4,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/NoamBoni/gofoloapp/helpers"
 	"github.com/NoamBoni/gofoloapp/models"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
-	"github.com/go-pg/pg"
 )
-
-var Db *pg.DB
-
-func init() {
-	Db = helpers.ConnectDB()
-}
 
 func RegisterTherapist(ctx *gin.Context) {
 	var newTherapist models.User
@@ -26,9 +18,9 @@ func RegisterTherapist(ctx *gin.Context) {
 		})
 		return
 	}
-	newTherapist.Role = "Therapist"
-	updateUser(ctx, &newTherapist)
-	if _, err := Db.Model(&newTherapist).Insert(); err != nil {
+	newTherapist.Role = models.Role.T
+	setEncryptedPassword(ctx, &newTherapist)
+	if err := newTherapist.Insert(true); err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"status": "failed",
 			"error":  err.Error(),
@@ -36,7 +28,6 @@ func RegisterTherapist(ctx *gin.Context) {
 		return
 	}
 
-	newTherapist.Password = ""
 	ctx.JSON(http.StatusCreated, gin.H{
 		"status": "created",
 		"data":   newTherapist,
@@ -56,12 +47,11 @@ func RegisterPatient(ctx *gin.Context) {
 
 	newUser := models.User{
 		Name:     newPatient.Name,
-		Password: newPatient.Password,
-		Role:     "Patient",
+		Role:     models.Role.P,
 	}
-	updateUser(ctx, &newUser)
+	setEncryptedPassword(ctx, &newUser)
 
-	if _, err := Db.Model(&newUser).Insert(); err != nil {
+	if err := newUser.Insert(true); err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"status": "failed",
 			"error":  err.Error(),
@@ -71,22 +61,21 @@ func RegisterPatient(ctx *gin.Context) {
 
 	newPatient.User_id = newUser.Id
 
-	if _, err := Db.Model(&newPatient).Insert(); err != nil {
-		_, _ = Db.Model(&newUser).Where("id = ?", newUser.Id).Delete()
+	if err := newPatient.Insert(); err != nil {
+		_ = newUser.Delete()
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"status": "failed",
 			"error":  err.Error(),
 		})
 		return
 	}
-	newPatient.Password = ""
 	ctx.JSON(http.StatusCreated, gin.H{
 		"status": "created",
 		"data":   newPatient,
 	})
 }
 
-func updateUser(ctx *gin.Context, user *models.User) {
+func setEncryptedPassword(ctx *gin.Context, user *models.User) {
 	password, got := ctx.Get("crypted-password")
 	if !got {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
