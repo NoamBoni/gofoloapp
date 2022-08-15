@@ -43,7 +43,6 @@ func (u *User) Select(safe bool) error {
 
 func (u *User) GetPatients() error {
 	query := fmt.Sprintf("select * from users join patients on users.id = patients.user_id where patients.therapist_id = %v", u.Id)
-	fmt.Println(query)
 	if _, err := Db.Query(&u.Patients, query); err != nil {
 		return err
 	}

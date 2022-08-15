@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/NoamBoni/gofoloapp/models"
@@ -10,10 +11,7 @@ import (
 func GetPatients(ctx *gin.Context) {
 	id, got := ctx.Get("user-id")
 	if !got {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"status": "failed",
-			"error":  "something's wrong, try again later",
-		})
+		ReturnError(ctx, http.StatusInternalServerError, errors.New("something's wrong, try again later"))
 		return
 	}
 	user := models.User{
@@ -21,10 +19,7 @@ func GetPatients(ctx *gin.Context) {
 	}
 	_ = user.Select(true)
 	if err := user.GetPatients(); err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"status": "failed",
-			"error":  err.Error(),
-		})
+		ReturnError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{

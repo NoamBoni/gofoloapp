@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"net/http"
 	"os"
 	"time"
@@ -14,10 +15,7 @@ func AuthMiddleware(ctx *gin.Context) {
 	helpers.LoadEnv()
 	cookie, err := ctx.Cookie("token")
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-			"status": "failed",
-			"error":  "please login to continue",
-		})
+		ReturnError(ctx, http.StatusUnauthorized, errors.New("please login to continue"))
 		return
 	}
 	token, err := jwt.ParseWithClaims(
@@ -26,25 +24,16 @@ func AuthMiddleware(ctx *gin.Context) {
 		getSecret,
 	)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-			"status": "failed",
-			"error":  "please login to continue",
-		})
+		ReturnError(ctx, http.StatusUnauthorized, errors.New("please login to continue"))
 		return
 	}
 	claims, ok := token.Claims.(*Claims)
 	if !ok {
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-			"status": "failed",
-			"error":  "please login to continue",
-		})
+		ReturnError(ctx, http.StatusUnauthorized, errors.New("please login to continue"))
 		return
 	}
 	if claims.ExpiresAt.Unix() < time.Now().Local().Unix() {
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-			"status": "failed",
-			"error":  "authentication expired",
-		})
+		ReturnError(ctx, http.StatusUnauthorized, errors.New("authentication expired"))
 		return
 	}
 	ctx.Set("role", claims.Role)

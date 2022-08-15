@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -38,24 +39,18 @@ func RegisterTherapist(ctx *gin.Context) {
 func RegisterPatient(ctx *gin.Context) {
 	var newPatient models.Patient
 	if err := ctx.ShouldBindBodyWith(&newPatient, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"status": "failed",
-			"error":  err.Error(),
-		})
+		ReturnError(ctx, http.StatusBadRequest, err)
 		return
 	}
 
 	newUser := models.User{
-		Name:     newPatient.Name,
-		Role:     models.Role.P,
+		Name: newPatient.Name,
+		Role: models.Role.P,
 	}
 	setEncryptedPassword(ctx, &newUser)
 
 	if err := newUser.Insert(true); err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"status": "failed",
-			"error":  err.Error(),
-		})
+		ReturnError(ctx, http.StatusBadRequest, err)
 		return
 	}
 
@@ -63,10 +58,7 @@ func RegisterPatient(ctx *gin.Context) {
 
 	if err := newPatient.Insert(); err != nil {
 		_ = newUser.Delete()
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"status": "failed",
-			"error":  err.Error(),
-		})
+		ReturnError(ctx, http.StatusBadRequest, err)
 		return
 	}
 	ctx.JSON(http.StatusCreated, gin.H{
@@ -78,10 +70,7 @@ func RegisterPatient(ctx *gin.Context) {
 func setEncryptedPassword(ctx *gin.Context, user *models.User) {
 	password, got := ctx.Get("crypted-password")
 	if !got {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"status": "failed",
-			"error":  "something's wrong, try again later",
-		})
+		ReturnError(ctx, http.StatusBadRequest, errors.New("something's wrong, try again later"))
 		return
 	}
 	user.Password = fmt.Sprintf("%v", password)

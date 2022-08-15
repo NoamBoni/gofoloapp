@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
@@ -13,27 +14,18 @@ import (
 func Encrypt(ctx *gin.Context) {
 	var newUser models.User
 	if err := ctx.ShouldBindBodyWith(&newUser, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"status": "failed",
-			"error":  err.Error(),
-		})
+		ReturnError(ctx, http.StatusBadRequest, errors.New("invalid name or password"))
 		return
 	}
 
 	if strings.Contains(newUser.Password, " ") || strings.Contains(newUser.Name, " ") {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"status": "failed",
-			"error":  "invalid name or password",
-		})
+		ReturnError(ctx, http.StatusBadRequest, errors.New("invalid name or password"))
 		return
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(newUser.Password), bcrypt.DefaultCost)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"status": "failed",
-			"error":  err.Error(),
-		})
+		ReturnError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 

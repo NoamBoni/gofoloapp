@@ -18,5 +18,6 @@ func InitRouter() *gin.Engine {
 	data := router.Group("/data")
 	data.GET("/patients", controllers.RestrictToTherapists, controllers.GetPatients)
 	data.POST("/meetings", controllers.RestrictToTherapists, controllers.AddMeeting)
+	data.GET("/meetings/:id", controllers.GetMeetings)
 	return router
 }

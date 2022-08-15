@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"net/http"
 	"os"
 	"time"
@@ -30,17 +31,11 @@ func Login(ctx *gin.Context) {
 	var loginUser models.User
 	var usersList []models.User
 	if err := ctx.ShouldBindBodyWith(&loginUser, binding.JSON); err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"status": "failed",
-			"error":  err.Error(),
-		})
+		ReturnError(ctx, http.StatusBadRequest, err)
 		return
 	}
 	if err := models.GetUsersByName(loginUser.Name, &usersList); err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"status": "failed",
-			"error":  "invalid name or password",
-		})
+		ReturnError(ctx, http.StatusBadRequest, errors.New("invalid name or password"))
 		return
 	}
 	for _, user := range usersList {
@@ -76,10 +71,7 @@ func Login(ctx *gin.Context) {
 			}
 		}
 	}
-	ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-		"status": "failed",
-		"error":  "invalid name or password",
-	})
+	ReturnError(ctx, http.StatusBadRequest, errors.New("invalid name or password"))
 }
 
 func GenerateJWT(ex *ExtraClaims) (string, error) {
